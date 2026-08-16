@@ -1,0 +1,52 @@
+{
+  "name": "prisma-convex-schema",
+  "version": "0.1.0",
+  "description": "Compile a Prisma schema to a starting Convex schema.ts plus a mapping report.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Tester (AI) for Phuc Pham Minh via phuc-assistant",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/phuc-assistant/prisma-convex-schema.git"
+  },
+  "bugs": {
+    "url": "https://github.com/phuc-assistant/prisma-convex-schema/issues"
+  },
+  "homepage": "https://github.com/phuc-assistant/prisma-convex-schema#readme",
+  "keywords": [
+    "prisma",
+    "convex",
+    "schema",
+    "compiler",
+    "cli"
+  ],
+  "bin": {
+    "prisma-convex-schema": "./bin/run.mjs"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src",
+    "bin",
+    "fixtures",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "compile": "node --import tsx/esm src/cli.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@mrleebo/prisma-ast": "^0.15.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  }
+}
