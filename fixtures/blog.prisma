@@ -1,0 +1,43 @@
+// Synthetic blog schema for prisma-convex-schema fixtures.
+// No production data. No customer rows, tokens, or warehouse codes.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Status {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  name      String?
+  bio       String?
+  createdAt DateTime @default(now())
+  posts     Post[]
+}
+
+model Post {
+  id        Int      @id @default(autoincrement())
+  title     String
+  body      String
+  status    Status   @default(DRAFT)
+  published Boolean  @default(false)
+  views     Int      @default(0)
+  score     Float?
+  price     Decimal? @db.Decimal(10, 2)
+  tags      String[]
+  metadata  Json?
+  cover     Bytes?
+  author    User     @relation(fields: [authorId], references: [id])
+  authorId  Int
+  createdAt DateTime @default(now())
+}
