@@ -1,0 +1,25 @@
+// Synthetic catalog / invoice fixture for Decimal mapping.
+// No production data. No customer rows, tokens, or warehouse codes.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model CatalogItem {
+  id        Int      @id @default(autoincrement())
+  sku       String   @unique
+  unitPrice Decimal  @db.Decimal(12, 4)
+  taxRate   Decimal? @db.Decimal(5, 4)
+  qtyOnHand Int      @default(0)
+}
+
+model InvoiceLine {
+  id       Int     @id @default(autoincrement())
+  amount   Decimal @db.Decimal(19, 4)
+  discount Decimal @db.Decimal(19, 4)
+}

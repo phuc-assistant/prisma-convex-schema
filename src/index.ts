@@ -14,7 +14,14 @@ export type {
   Severity,
 } from "./types.ts";
 export { parsePrisma } from "./parse.ts";
-export { emitConvexSchema, mapField, convexTableName } from "./emit.ts";
+export {
+  emitConvexSchema,
+  mapField,
+  convexTableName,
+  DECIMAL_WARNING,
+  DECIMAL_COMMENT,
+  isDecimalField,
+} from "./emit.ts";
 export { emitReport } from "./report.ts";
 
 export function compile(source: string): CompileResult {

@@ -14,9 +14,10 @@ data, invoices, warehouse codes, tokens, or private ERP schemas.
 
 1. Install dependencies
 2. Run the vitest suite
-3. Run the CLI on fixtures/blog.prisma
+3. Run the CLI on fixtures/blog.prisma and fixtures/decimal.prisma
 
 Keep the type mapping table in the README in sync with src/emit.ts.
+Decimal stays `v.number()` with an explicit lossy warning (issue #1).
 
 ## Money
 

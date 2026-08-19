@@ -70,10 +70,13 @@ export function run(argv: string[]): number {
 
   const warnings = result.notes.filter((note) => note.severity === "warning").length;
   const omitted = result.notes.filter((note) => note.convexValidator === null).length;
+  const decimals = result.notes.filter((note) =>
+    note.prismaType.replace("[]", "").replace("?", "") === "Decimal",
+  ).length;
   console.log(`Wrote ${args.outFile}`);
   console.log(`Wrote ${args.reportFile}`);
   console.log(
-    `Models: ${result.schema.models.length}; warnings: ${warnings}; omitted fields: ${omitted}`,
+    `Models: ${result.schema.models.length}; warnings: ${warnings}; omitted fields: ${omitted}; decimal fields: ${decimals} (lossy v.number)`,
   );
   return 0;
 }

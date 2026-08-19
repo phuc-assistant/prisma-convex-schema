@@ -1,4 +1,4 @@
-import { convexTableName } from "./emit.ts";
+import { convexTableName, DECIMAL_WARNING } from "./emit.ts";
 import type { MappingNote, ParsedSchema } from "./types.ts";
 
 function row(columns: string[]): string {
@@ -37,6 +37,9 @@ export function emitReport(schema: ParsedSchema, notes: MappingNote[]): string {
   const unsupported = notes.filter(
     (note) => note.severity === "unsupported" || note.convexValidator === null,
   );
+  const decimalNotes = notes.filter((note) =>
+    note.prismaType.replace("[]", "").replace("?", "") === "Decimal",
+  );
 
   const lines = [
     "# Prisma to Convex mapping report",
@@ -55,9 +58,24 @@ export function emitReport(schema: ParsedSchema, notes: MappingNote[]): string {
     row(["---", "---", "---", "---", "---", "---"]),
     ...fieldRows,
     "",
-    "## Warnings",
+    "## Decimal precision (explicit, lossy)",
     "",
   ];
+
+  if (decimalNotes.length === 0) {
+    lines.push("No Prisma Decimal fields in this schema.");
+  } else {
+    lines.push(DECIMAL_WARNING);
+    lines.push("");
+    lines.push("Decimal fields in this schema:");
+    for (const note of decimalNotes) {
+      lines.push(
+        `- **${note.model}.${note.field}**: Prisma \`${note.prismaType}\` -> Convex \`${note.convexValidator}\` (lossy IEEE-754; not money-safe)`,
+      );
+    }
+  }
+
+  lines.push("", "## Warnings", "");
 
   if (warnings.length === 0) {
     lines.push("None.");
@@ -83,7 +101,8 @@ export function emitReport(schema: ParsedSchema, notes: MappingNote[]): string {
     "## Mapping reference",
     "",
     "- String -> `v.string()`",
-    "- Int / Float / Decimal -> `v.number()` (Decimal warns about precision)",
+    "- Int / Float -> `v.number()`",
+    "- Decimal -> `v.number()` with an **explicit lossy warning** (IEEE-754; precision and scale dropped). Not a lossless mapping. See issue #1.",
     "- Boolean -> `v.boolean()`",
     "- DateTime -> ISO-8601 `v.string()`",
     "- Json -> `v.any()` with a warning",
@@ -91,6 +110,8 @@ export function emitReport(schema: ParsedSchema, notes: MappingNote[]): string {
     "- Enum -> `v.union` of `v.literal` values",
     "- Optional and lists wrap the inner validator",
     "- Relations omitted and listed above",
+    "",
+    "This compiler is a Prisma-file starting point. Other tools (for example @doeixd/gen) can emit Convex schema from their own config; this is not a claim to be first or unique.",
     "",
   );
 

@@ -5,6 +5,13 @@ import type {
   ParsedSchema,
 } from "./types.ts";
 
+/** Explicit, lossy Decimal default. Convex has no Decimal validator; keep v.number(). */
+export const DECIMAL_WARNING =
+  "Decimal mapped to v.number() (IEEE-754 float64). This is lossy: Prisma Decimal precision and scale are not preserved. Do not use the emitted field as money-safe storage. Convex has no Decimal validator in this compiler; a lossless default is tracked in issue #1 and is not the 0.1.x behavior.";
+
+export const DECIMAL_COMMENT =
+  "Prisma Decimal -> v.number (IEEE-754; not lossless)";
+
 const SCALAR_MAP: Record<
   string,
   { validator: string; warning?: string; comment?: string }
@@ -19,8 +26,8 @@ const SCALAR_MAP: Record<
   },
   Decimal: {
     validator: "v.number()",
-    warning:
-      "Decimal mapped to v.number(); Convex numbers are IEEE-754 float64 and will lose Decimal precision.",
+    comment: DECIMAL_COMMENT,
+    warning: DECIMAL_WARNING,
   },
   Boolean: { validator: "v.boolean()" },
   DateTime: {
@@ -49,6 +56,10 @@ function enumUnion(values: string[]): string {
   if (values.length === 0) return "v.string()";
   if (values.length === 1) return `v.literal(${JSON.stringify(values[0])})`;
   return `v.union(${values.map((value) => `v.literal(${JSON.stringify(value)})`).join(", ")})`;
+}
+
+export function isDecimalField(field: ParsedField): boolean {
+  return field.prismaType === "Decimal";
 }
 
 export function mapField(

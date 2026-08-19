@@ -3,7 +3,14 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { run } from "../src/cli.ts";
-import { compile, convexTableName, mapField, parsePrisma } from "../src/index.ts";
+import {
+  compile,
+  convexTableName,
+  DECIMAL_COMMENT,
+  DECIMAL_WARNING,
+  mapField,
+  parsePrisma,
+} from "../src/index.ts";
 
 function compileModel(body: string): ReturnType<typeof compile> {
   return compile(`model Item {\n${body}\n}\n`);
@@ -24,9 +31,14 @@ describe("prisma-convex-schema", () => {
   it("maps Decimal to v.number() with a precision warning", () => {
     const result = compileModel("  price Decimal");
     expect(result.convexSource).toContain("price: v.number()");
+    expect(result.convexSource).toContain(DECIMAL_COMMENT);
     const note = result.notes.find((entry) => entry.field === "price");
     expect(note?.severity).toBe("warning");
-    expect(note?.message).toMatch(/Decimal/i);
+    expect(note?.message).toBe(DECIMAL_WARNING);
+    expect(note?.convexValidator).toBe("v.number()");
+    expect(result.report).toContain("## Decimal precision (explicit, lossy)");
+    expect(result.report).toContain("Item.price");
+    expect(result.report).toMatch(/lossy/i);
   });
 
   it("maps Boolean to v.boolean()", () => {

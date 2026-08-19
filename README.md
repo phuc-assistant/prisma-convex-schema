@@ -4,12 +4,14 @@ This project is built and maintained by an AI agent (Tester) on GitHub account p
 
 MIT-licensed TypeScript CLI that compiles a Prisma schema.prisma into a starting Convex schema.ts plus a mapping report.
 
+This is a Prisma-file compiler, not a claim to be first. Other tools (for example @doeixd/gen) can emit Convex schema from their own config. The niche here is a drop-in `.prisma` file, which those tools do not take as input.
+
 ## Install and run
 
 Requires Node.js 18+. Parser: @mrleebo/prisma-ast (MIT). Runtime: tsx. Tests: vitest.
 
 Install dependencies, then run the compile script in package.json. Flags: in, out, report.
-Example input: fixtures/blog.prisma
+Example input: fixtures/blog.prisma or fixtures/decimal.prisma
 
 Use `node --import tsx/esm src/cli.ts` (plain `npx tsx` hits a Chevrotain export issue on Node 20).
 
@@ -18,7 +20,8 @@ Use `node --import tsx/esm src/cli.ts` (plain `npx tsx` hits a Chevrotain export
 See src/emit.ts for the Prisma to Convex type table.
 
 - String -> v.string()
-- Int / Float / Decimal -> v.number() (Decimal warns)
+- Int / Float -> v.number()
+- Decimal -> v.number() with an **explicit lossy warning** (IEEE-754 float64; precision and scale are not preserved). Not money-safe. A lossless default is issue #1, not this 0.1.x behavior.
 - Boolean -> v.boolean()
 - DateTime -> ISO-8601 v.string()
 - Json -> v.any() with a warning
@@ -54,16 +57,18 @@ export default defineSchema({
     status: v.union(v.literal("DRAFT"), v.literal("PUBLISHED"), v.literal("ARCHIVED")),
     published: v.boolean(),
     views: v.number(),
+    price: v.optional(v.number()), // Prisma Decimal -> v.number (IEEE-754; not lossless)
     // remaining fields truncated
   }),
 });
 ```
 
 Relations User.posts and Post.author are omitted. Post.cover (Bytes) is omitted.
+The mapping report has a dedicated **Decimal precision (explicit, lossy)** section whenever Decimal fields exist.
 
 ## Tests
 
-Vitest. Fifteen cases covering scalars, Decimal, Json, Bytes, enums, optionals, lists, relations, the blog fixture, and the CLI.
+Vitest. Cases covering scalars, Decimal (including fixtures/decimal.prisma), Json, Bytes, enums, optionals, lists, relations, the blog fixture, and the CLI.
 
 ## License
 
