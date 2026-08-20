@@ -10,9 +10,8 @@ This CLI compiles a synthetic or your-own Prisma schema into a starting
 Convex schema.ts and a mapping report. Do not send production customer
 data, invoices, warehouse codes, tokens, or private ERP schemas.
 
-The in-browser playground (playground/index.html) uses the conservative
-subset parser in src/subset.js / playground/subset.js. Keep those two
-files in sync. Be honest that it is not full Prisma.
+The in-browser playground (playground/index.html) loads the conservative
+subset parser from src/subset.js. Be honest that it is not full Prisma.
 
 ## Workflow
 

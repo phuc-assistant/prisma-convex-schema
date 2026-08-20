@@ -10,7 +10,6 @@ import {
   DECIMAL_WARNING,
   parseSubset,
 } from "../src/subset.js";
-import { compileSubset as playgroundCompile } from "../playground/subset.js";
 
 const blogPath = resolve("fixtures/blog.prisma");
 const decimalPath = resolve("fixtures/decimal.prisma");
@@ -74,14 +73,6 @@ describe("subset parser headless check", () => {
     assert.equal(result.convexSource.includes(DECIMAL_STRING_COMMENT), true);
     assert.match(result.report, /lossless opt-in/);
     assert.equal(result.report.includes(DECIMAL_STRING_WARNING), true);
-  });
-
-  it("playground/subset.js is the same compiler on blog.prisma", () => {
-    const source = readFileSync(blogPath, "utf8");
-    const fromSrc = compileSubset(source);
-    const fromPlayground = playgroundCompile(source);
-    assert.equal(fromSrc.convexSource, fromPlayground.convexSource);
-    assert.equal(fromSrc.report, fromPlayground.report);
   });
 
   it("maps scalars, optional, lists, enum, and skips relations", () => {

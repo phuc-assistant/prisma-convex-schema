@@ -1,4 +1,4 @@
-import { compileSubset } from "./subset.js";
+import { compileSubset } from "../src/subset.js";
 
 const BLOG_FIXTURE = `// Synthetic blog schema for prisma-convex-schema fixtures.
 // No production data. No customer rows, tokens, or warehouse codes.
