@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prisma → Convex playground (subset)</title>
+  <meta name="description" content="In-browser Prisma schema to Convex schema.ts compiler. No account. Subset parser.">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #101114;
+      --panel: #1a1c22;
+      --ink: #e8e6e3;
+      --muted: #9a958c;
+      --line: #2c3038;
+      --accent: #7eb8da;
+      --warn: #e6c07b;
+      --err: #e07a7a;
+      --ok: #8fbf8f;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: ui-sans-serif, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.45;
+    }
+    header, main, footer { max-width: 1200px; margin: 0 auto; padding: 1rem 1.25rem; }
+    header {
+      border-bottom: 1px solid var(--line);
+    }
+    .disclosure {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0.9rem 1rem;
+      font-size: 0.95rem;
+    }
+    .disclosure strong { color: var(--warn); }
+    h1 { font-size: 1.45rem; margin: 0.85rem 0 0.35rem; }
+    .lede, .subset, footer, .status { color: var(--muted); font-size: 0.92rem; }
+    .subset { margin: 0.5rem 0 0; }
+    form { margin-top: 1rem; }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 0.75rem;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+    button, .radio {
+      font: inherit;
+      color: var(--ink);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 0.35rem 0.7rem;
+      cursor: pointer;
+    }
+    button[type="submit"] {
+      background: #243344;
+      border-color: var(--accent);
+    }
+    textarea {
+      width: 100%;
+      min-height: 280px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.82rem;
+      background: var(--panel);
+      color: var(--ink);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0.75rem;
+      resize: vertical;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+    @media (min-width: 960px) {
+      .grid { grid-template-columns: 1fr 1fr; }
+      .input-pane { grid-column: 1 / -1; }
+    }
+    label.pane-label { display: block; margin-bottom: 0.35rem; font-weight: 600; }
+    .status[data-kind="warn"] { color: var(--warn); }
+    .status[data-kind="err"] { color: var(--err); }
+    .status[data-kind="ok"] { color: var(--ok); }
+    a { color: var(--accent); }
+    .pane-head { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="disclosure">
+      <strong>AI disclosure.</strong>
+      Built by Tester (AI) under Phuc Pham Minh via GitHub account
+      <a href="https://github.com/phuc-assistant/prisma-convex-schema">phuc-assistant/prisma-convex-schema</a>.
+      MIT. Not a human freelancer. No warranty.
+      Polar checkout is not live; do not send money.
+      This page has no backend, no API keys, and no analytics.
+    </div>
+    <h1>Prisma → Convex playground</h1>
+    <p class="lede">Paste <code>schema.prisma</code>. Get a starting <code>convex/schema.ts</code> plus a mapping report. Nothing leaves this browser.</p>
+    <p class="subset">Honest subset: this page uses a conservative plain-JS parser, not <code>@mrleebo/prisma-ast</code> / Chevrotain. It handles models, enums, String/Int/Float/Decimal/Boolean/DateTime/Json/Bytes, optional, and lists. Relations are skipped. generator/datasource/@@indexes/views/composite types are ignored. Enough for the blog and decimal fixtures; not full Prisma.</p>
+  </header>
+  <main>
+    <form id="convert-form">
+      <div class="toolbar">
+        <button type="submit">Convert</button>
+        <button type="button" id="load-blog">Load blog fixture</button>
+        <button type="button" id="load-decimal">Load decimal fixture</button>
+        <span class="radio">Decimal:
+          <label><input type="radio" name="decimal" value="number" checked> number (lossy, default)</label>
+          <label><input type="radio" name="decimal" value="string"> string (lossless opt-in)</label>
+        </span>
+      </div>
+      <p class="status" id="status" data-kind="ok">Ready.</p>
+      <div class="grid">
+        <div class="input-pane">
+          <label class="pane-label" for="input">schema.prisma</label>
+          <textarea id="input" spellcheck="false" aria-label="Prisma schema input"></textarea>
+        </div>
+        <div>
+          <div class="pane-head">
+            <label class="pane-label" for="schema">convex/schema.ts</label>
+            <button type="button" id="copy-schema">Copy</button>
+          </div>
+          <textarea id="schema" spellcheck="false" readonly aria-label="Generated Convex schema"></textarea>
+        </div>
+        <div>
+          <div class="pane-head">
+            <label class="pane-label" for="report">mapping report</label>
+            <button type="button" id="copy-report">Copy</button>
+          </div>
+          <textarea id="report" spellcheck="false" readonly aria-label="Mapping report"></textarea>
+        </div>
+      </div>
+    </form>
+  </main>
+  <footer>
+    <p>MIT. CLI lives in the same repo. Default Decimal mapping is still lossy <code>v.number()</code> (issue #1). Pro is not for sale. Do not send money.</p>
+  </footer>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

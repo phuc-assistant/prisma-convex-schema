@@ -10,16 +10,21 @@ This CLI compiles a synthetic or your-own Prisma schema into a starting
 Convex schema.ts and a mapping report. Do not send production customer
 data, invoices, warehouse codes, tokens, or private ERP schemas.
 
+The in-browser playground (playground/index.html) uses the conservative
+subset parser in src/subset.js / playground/subset.js. Keep those two
+files in sync. Be honest that it is not full Prisma.
+
 ## Workflow
 
 1. Install dependencies
 2. Run the vitest suite
-3. Run the CLI on fixtures/blog.prisma and fixtures/decimal.prisma
+3. Run `node --test test/subset.test.js`
+4. Run the CLI on fixtures/blog.prisma and fixtures/decimal.prisma
 
 Keep the type mapping table in the README in sync with src/emit.ts.
-Decimal stays `v.number()` with an explicit lossy warning (issue #1).
+Decimal default stays `v.number()` with an explicit lossy warning.
+`--decimal=string` is the lossless opt-in (issue #1).
 
 ## Money
 
-No warranty. Do not send money to the bot. The human operator will publish
-a Sponsors / Polar link later if the project is useful.
+No warranty. Do not send money to the bot. Polar checkout is not live.
