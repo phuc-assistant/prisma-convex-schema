@@ -1,4 +1,6 @@
 import type {
+  CompileOptions,
+  DecimalMode,
   EmitResult,
   MappingNote,
   ParsedField,
@@ -12,6 +14,13 @@ export const DECIMAL_WARNING =
 export const DECIMAL_COMMENT =
   "Prisma Decimal -> v.number (IEEE-754; not lossless)";
 
+/** Opt-in lossless path for issue #1. Default remains v.number(). */
+export const DECIMAL_STRING_WARNING =
+  "Decimal mapped to v.string() (lossless opt-in for issue #1). Store decimal text, not IEEE-754. Default remains v.number(); pass --decimal=string to opt in.";
+
+export const DECIMAL_STRING_COMMENT =
+  "Prisma Decimal -> v.string (lossless opt-in)";
+
 const SCALAR_MAP: Record<
   string,
   { validator: string; warning?: string; comment?: string }
@@ -24,11 +33,6 @@ const SCALAR_MAP: Record<
     warning:
       "BigInt mapped to v.number(); values larger than Number.MAX_SAFE_INTEGER will lose precision.",
   },
-  Decimal: {
-    validator: "v.number()",
-    comment: DECIMAL_COMMENT,
-    warning: DECIMAL_WARNING,
-  },
   Boolean: { validator: "v.boolean()" },
   DateTime: {
     validator: "v.string()",
@@ -40,6 +44,29 @@ const SCALAR_MAP: Record<
     warning: "Json mapped to v.any(); tighten this validator by hand.",
   },
 };
+
+function decimalSpec(mode: DecimalMode): {
+  validator: string;
+  warning: string;
+  comment: string;
+} {
+  if (mode === "string") {
+    return {
+      validator: "v.string()",
+      comment: DECIMAL_STRING_COMMENT,
+      warning: DECIMAL_STRING_WARNING,
+    };
+  }
+  return {
+    validator: "v.number()",
+    comment: DECIMAL_COMMENT,
+    warning: DECIMAL_WARNING,
+  };
+}
+
+function resolveOptions(options?: CompileOptions): { decimal: DecimalMode } {
+  return { decimal: options?.decimal === "string" ? "string" : "number" };
+}
 
 export function convexTableName(modelName: string): string {
   return modelName.charAt(0).toLowerCase() + modelName.slice(1);
@@ -66,7 +93,9 @@ export function mapField(
   modelName: string,
   field: ParsedField,
   schema: ParsedSchema,
+  options?: CompileOptions,
 ): { validator: string | null; note: MappingNote; comment?: string } {
+  const { decimal } = resolveOptions(options);
   const prismaType =
     field.prismaType + (field.isArray ? "[]" : "") + (field.isOptional ? "?" : "");
 
@@ -117,6 +146,23 @@ export function mapField(
     };
   }
 
+  if (field.prismaType === "Decimal") {
+    const spec = decimalSpec(decimal);
+    const validator = wrap(spec.validator, field);
+    return {
+      validator,
+      comment: spec.comment,
+      note: {
+        model: modelName,
+        field: field.name,
+        prismaType,
+        convexValidator: validator,
+        severity: "warning",
+        message: spec.warning,
+      },
+    };
+  }
+
   const scalar = SCALAR_MAP[field.prismaType];
   if (scalar) {
     const validator = wrap(scalar.validator, field);
@@ -147,14 +193,17 @@ export function mapField(
   };
 }
 
-export function emitConvexSchema(schema: ParsedSchema): EmitResult {
+export function emitConvexSchema(
+  schema: ParsedSchema,
+  options?: CompileOptions,
+): EmitResult {
   const notes: MappingNote[] = [];
   const tables: string[] = [];
 
   for (const model of schema.models) {
     const lines: string[] = [];
     for (const field of model.fields) {
-      const mapped = mapField(model.name, field, schema);
+      const mapped = mapField(model.name, field, schema, options);
       notes.push(mapped.note);
       if (!mapped.validator) continue;
       const comment = mapped.comment ? ` // ${mapped.comment}` : "";

@@ -18,7 +18,7 @@ describe("Decimal fixture and report", () => {
     expect(result.convexSource).toContain("amount: v.number()");
     expect(result.convexSource).toContain("discount: v.number()");
     expect(result.convexSource).toContain(DECIMAL_COMMENT);
-    // Do not switch Decimal to v.string in 0.1.x.
+    // Default remains v.number; lossless v.string is --decimal=string.
     expect(result.convexSource).not.toMatch(/unitPrice: v\.string\(\)/);
   });
 
@@ -71,5 +71,25 @@ describe("Decimal fixture and report", () => {
     expect(schema).toContain(DECIMAL_COMMENT);
     expect(report).toContain("## Decimal precision (explicit, lossy)");
     expect(report).toContain(DECIMAL_WARNING);
+  });
+
+  it("CLI --decimal=string writes lossless v.string for Decimal fields", () => {
+    const dir = mkdtempSync(join(tmpdir(), "pcs-dec-str-"));
+    const outFile = join(dir, "schema.ts");
+    const reportFile = join(dir, "report.md");
+    const code = run([
+      "--in",
+      resolve("fixtures/decimal.prisma"),
+      "--out",
+      outFile,
+      "--report",
+      reportFile,
+      "--decimal=string",
+    ]);
+    expect(code).toBe(0);
+    const schema = readFileSync(outFile, "utf8");
+    const report = readFileSync(reportFile, "utf8");
+    expect(schema).toContain("unitPrice: v.string()");
+    expect(report).toContain("## Decimal precision (lossless opt-in, v.string)");
   });
 });
