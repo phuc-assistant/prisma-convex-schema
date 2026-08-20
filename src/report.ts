@@ -1,11 +1,24 @@
-import { convexTableName, DECIMAL_WARNING } from "./emit.ts";
-import type { MappingNote, ParsedSchema } from "./types.ts";
+import {
+  convexTableName,
+  DECIMAL_STRING_WARNING,
+  DECIMAL_WARNING,
+} from "./emit.ts";
+import type { CompileOptions, MappingNote, ParsedSchema } from "./types.ts";
 
 function row(columns: string[]): string {
   return `| ${columns.join(" | ")} |`;
 }
 
-export function emitReport(schema: ParsedSchema, notes: MappingNote[]): string {
+function isDecimalNote(note: MappingNote): boolean {
+  return note.prismaType.replace("[]", "").replace("?", "") === "Decimal";
+}
+
+export function emitReport(
+  schema: ParsedSchema,
+  notes: MappingNote[],
+  options?: CompileOptions,
+): string {
+  const decimalMode = options?.decimal === "string" ? "string" : "number";
   const tableRows = schema.models.map((model) => {
     const modelNotes = notes.filter((note) => note.model === model.name);
     const kept = modelNotes
@@ -37,9 +50,7 @@ export function emitReport(schema: ParsedSchema, notes: MappingNote[]): string {
   const unsupported = notes.filter(
     (note) => note.severity === "unsupported" || note.convexValidator === null,
   );
-  const decimalNotes = notes.filter((note) =>
-    note.prismaType.replace("[]", "").replace("?", "") === "Decimal",
-  );
+  const decimalNotes = notes.filter(isDecimalNote);
 
   const lines = [
     "# Prisma to Convex mapping report",
@@ -58,12 +69,25 @@ export function emitReport(schema: ParsedSchema, notes: MappingNote[]): string {
     row(["---", "---", "---", "---", "---", "---"]),
     ...fieldRows,
     "",
-    "## Decimal precision (explicit, lossy)",
-    "",
   ];
+
+  if (decimalMode === "string") {
+    lines.push("## Decimal precision (lossless opt-in, v.string)", "");
+  } else {
+    lines.push("## Decimal precision (explicit, lossy)", "");
+  }
 
   if (decimalNotes.length === 0) {
     lines.push("No Prisma Decimal fields in this schema.");
+  } else if (decimalMode === "string") {
+    lines.push(DECIMAL_STRING_WARNING);
+    lines.push("");
+    lines.push("Decimal fields in this schema:");
+    for (const note of decimalNotes) {
+      lines.push(
+        `- **${note.model}.${note.field}**: Prisma \`${note.prismaType}\` -> Convex \`${note.convexValidator}\` (lossless v.string opt-in; not IEEE-754)`,
+      );
+    }
   } else {
     lines.push(DECIMAL_WARNING);
     lines.push("");
@@ -102,7 +126,7 @@ export function emitReport(schema: ParsedSchema, notes: MappingNote[]): string {
     "",
     "- String -> `v.string()`",
     "- Int / Float -> `v.number()`",
-    "- Decimal -> `v.number()` with an **explicit lossy warning** (IEEE-754; precision and scale dropped). Not a lossless mapping. See issue #1.",
+    "- Decimal -> `v.number()` with an **explicit lossy warning** (IEEE-754; precision and scale dropped) by default. `--decimal=string` stores Decimal as `v.string()` (lossless opt-in, issue #1).",
     "- Boolean -> `v.boolean()`",
     "- DateTime -> ISO-8601 `v.string()`",
     "- Json -> `v.any()` with a warning",

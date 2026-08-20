@@ -2,16 +2,23 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { compile } from "./index.ts";
+import type { DecimalMode } from "./types.ts";
 
 function printHelp(): void {
   const text = [
     "prisma-convex-schema - compile Prisma schema to Convex schema.ts",
     "",
     "Usage:",
-    "  node --import tsx/esm src/cli.ts --in <schema.prisma> --out <schema.ts> --report <report.md>",
+    "  node --import tsx/esm src/cli.ts --in <schema.prisma> --out <schema.ts> --report <report.md> [--decimal=number|string]",
+    "",
+    "Flags:",
+    "  --in, --out, --report   required paths",
+    "  --decimal=number        default; Decimal -> v.number() with a lossy IEEE-754 warning",
+    "  --decimal=string        lossless opt-in for issue #1; Decimal -> v.string()",
     "",
     "This project is built and maintained by an AI agent (Tester) on GitHub",
     "account phuc-assistant. No warranty. Do not send money to the bot.",
+    "Polar checkout is not live.",
   ].join("\n");
   console.log(text);
 }
@@ -20,14 +27,18 @@ function parseArgs(argv: string[]): {
   inFile?: string;
   outFile?: string;
   reportFile?: string;
+  decimal: DecimalMode;
   help: boolean;
+  decimalError?: string;
 } {
   const result: {
     inFile?: string;
     outFile?: string;
     reportFile?: string;
+    decimal: DecimalMode;
     help: boolean;
-  } = { help: false };
+    decimalError?: string;
+  } = { help: false, decimal: "number" };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     const next = argv[i + 1];
@@ -41,6 +52,20 @@ function parseArgs(argv: string[]): {
     } else if (arg === "--report" && next) {
       result.reportFile = next;
       i += 1;
+    } else if (arg === "--decimal" && next) {
+      if (next !== "number" && next !== "string") {
+        result.decimalError = next;
+      } else {
+        result.decimal = next;
+      }
+      i += 1;
+    } else if (arg?.startsWith("--decimal=")) {
+      const value = arg.slice("--decimal=".length);
+      if (value !== "number" && value !== "string") {
+        result.decimalError = value;
+      } else {
+        result.decimal = value;
+      }
     }
   }
   return result;
@@ -57,6 +82,11 @@ export function run(argv: string[]): number {
     printHelp();
     return 0;
   }
+  if (args.decimalError) {
+    printHelp();
+    console.error(`\nerror: --decimal must be number or string, got ${args.decimalError}`);
+    return 1;
+  }
   if (!args.inFile || !args.outFile || !args.reportFile) {
     printHelp();
     console.error("\nerror: --in, --out, and --report are required");
@@ -64,7 +94,7 @@ export function run(argv: string[]): number {
   }
 
   const source = readFileSync(resolve(args.inFile), "utf8");
-  const result = compile(source);
+  const result = compile(source, { decimal: args.decimal });
   writeFile(resolve(args.outFile), result.convexSource);
   writeFile(resolve(args.reportFile), result.report);
 
@@ -73,10 +103,14 @@ export function run(argv: string[]): number {
   const decimals = result.notes.filter((note) =>
     note.prismaType.replace("[]", "").replace("?", "") === "Decimal",
   ).length;
+  const decimalLabel =
+    args.decimal === "string"
+      ? "lossless v.string opt-in"
+      : "lossy v.number";
   console.log(`Wrote ${args.outFile}`);
   console.log(`Wrote ${args.reportFile}`);
   console.log(
-    `Models: ${result.schema.models.length}; warnings: ${warnings}; omitted fields: ${omitted}; decimal fields: ${decimals} (lossy v.number)`,
+    `Models: ${result.schema.models.length}; warnings: ${warnings}; omitted fields: ${omitted}; decimal fields: ${decimals} (${decimalLabel})`,
   );
   return 0;
 }
