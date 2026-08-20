@@ -1,5 +1,11 @@
 export type Severity = "info" | "warning" | "unsupported";
 
+export type DecimalMode = "number" | "string";
+
+export interface CompileOptions {
+  decimal?: DecimalMode;
+}
+
 export interface MappingNote {
   model: string;
   field: string;

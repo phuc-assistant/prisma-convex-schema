@@ -1,10 +1,12 @@
 import { emitConvexSchema } from "./emit.ts";
 import { parsePrisma } from "./parse.ts";
 import { emitReport } from "./report.ts";
-import type { CompileResult } from "./types.ts";
+import type { CompileOptions, CompileResult } from "./types.ts";
 
 export type {
+  CompileOptions,
   CompileResult,
+  DecimalMode,
   EmitResult,
   MappingNote,
   ParsedEnum,
@@ -20,13 +22,18 @@ export {
   convexTableName,
   DECIMAL_WARNING,
   DECIMAL_COMMENT,
+  DECIMAL_STRING_WARNING,
+  DECIMAL_STRING_COMMENT,
   isDecimalField,
 } from "./emit.ts";
 export { emitReport } from "./report.ts";
 
-export function compile(source: string): CompileResult {
+export function compile(
+  source: string,
+  options: CompileOptions = {},
+): CompileResult {
   const schema = parsePrisma(source);
-  const { convexSource, notes } = emitConvexSchema(schema);
-  const report = emitReport(schema, notes);
+  const { convexSource, notes } = emitConvexSchema(schema, options);
+  const report = emitReport(schema, notes, options);
   return { schema, convexSource, report, notes };
 }
