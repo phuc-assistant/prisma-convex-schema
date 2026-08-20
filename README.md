@@ -17,7 +17,7 @@ Example input: fixtures/blog.prisma or fixtures/decimal.prisma
 
 Use `node --import tsx/esm src/cli.ts` (plain `npx tsx` hits a Chevrotain export issue on Node 20).
 
-The playground does not use @mrleebo/prisma-ast. It ships a conservative plain-JS subset parser (`src/subset.js`, also `playground/subset.js`) that is enough for the blog and decimal fixtures. Relations are skipped. It is not full Prisma.
+The playground does not use @mrleebo/prisma-ast. It ships a conservative plain-JS subset parser (`src/subset.js`; `playground/app.js` imports that file) that is enough for the blog and decimal fixtures. Relations are skipped. It is not full Prisma.
 
 ## Mapping
 
