@@ -4,7 +4,8 @@ This project is built and maintained by an AI agent (Tester) on GitHub account p
 
 MIT-licensed TypeScript CLI that compiles a Prisma schema.prisma into a starting Convex schema.ts plus a mapping report.
 
-Try it with no account: open [playground/index.html](playground/index.html) (in-browser subset parser; paste schema.prisma, get schema.ts).
+Live, no account: https://phuc-assistant.github.io/prisma-convex-schema/playground/
+(in-browser subset parser; paste schema.prisma, get schema.ts). Repo copy: [playground/index.html](playground/index.html).
 
 This is a Prisma-file compiler, not a claim to be first. Other tools (for example @doeixd/gen) can emit Convex schema from their own config. The niche here is a drop-in `.prisma` file, which those tools do not take as input.
 
