@@ -1,4 +1,6 @@
 import {
+  BYTES_OMIT_MESSAGE,
+  BYTES_STRING_WARNING,
   convexTableName,
   DECIMAL_STRING_WARNING,
   DECIMAL_WARNING,
@@ -13,12 +15,17 @@ function isDecimalNote(note: MappingNote): boolean {
   return note.prismaType.replace("[]", "").replace("?", "") === "Decimal";
 }
 
+function isBytesNote(note: MappingNote): boolean {
+  return note.prismaType.replace("[]", "").replace("?", "") === "Bytes";
+}
+
 export function emitReport(
   schema: ParsedSchema,
   notes: MappingNote[],
   options?: CompileOptions,
 ): string {
   const decimalMode = options?.decimal === "string" ? "string" : "number";
+  const bytesMode = options?.bytes === "string" ? "string" : "omit";
   const tableRows = schema.models.map((model) => {
     const modelNotes = notes.filter((note) => note.model === model.name);
     const kept = modelNotes
@@ -51,6 +58,7 @@ export function emitReport(
     (note) => note.severity === "unsupported" || note.convexValidator === null,
   );
   const decimalNotes = notes.filter(isDecimalNote);
+  const bytesNotes = notes.filter(isBytesNote);
 
   const lines = [
     "# Prisma to Convex mapping report",
@@ -99,6 +107,34 @@ export function emitReport(
     }
   }
 
+  if (bytesMode === "string") {
+    lines.push("", "## Bytes (base64-as-string opt-in)", "");
+  } else {
+    lines.push("", "## Bytes (unsupported)", "");
+  }
+
+  if (bytesNotes.length === 0) {
+    lines.push("No Prisma Bytes fields in this schema.");
+  } else if (bytesMode === "string") {
+    lines.push(BYTES_STRING_WARNING);
+    lines.push("");
+    lines.push("Bytes fields in this schema:");
+    for (const note of bytesNotes) {
+      lines.push(
+        `- **${note.model}.${note.field}**: Prisma \`${note.prismaType}\` -> Convex \`${note.convexValidator}\` (base64 text opt-in; not v.bytes)`,
+      );
+    }
+  } else {
+    lines.push(BYTES_OMIT_MESSAGE);
+    lines.push("");
+    lines.push("Bytes fields in this schema (omitted from Convex schema; no v.bytes()):");
+    for (const note of bytesNotes) {
+      lines.push(
+        `- **${note.model}.${note.field}**: Prisma \`${note.prismaType}\` -> omitted (unsupported)`,
+      );
+    }
+  }
+
   lines.push("", "## Warnings", "");
 
   if (warnings.length === 0) {
@@ -130,7 +166,7 @@ export function emitReport(
     "- Boolean -> `v.boolean()`",
     "- DateTime -> ISO-8601 `v.string()`",
     "- Json -> `v.any()` with a warning",
-    "- Bytes -> unsupported, omitted",
+    "- Bytes -> omitted by default (no Convex `v.bytes()`). Dedicated **Bytes (unsupported)** section lists each field. `--bytes=string` stores Bytes as `v.string()` (base64 text opt-in; you encode at the app layer). Issue #2.",
     "- Enum -> `v.union` of `v.literal` values",
     "- Optional and lists wrap the inner validator",
     "- Relations omitted and listed above",
