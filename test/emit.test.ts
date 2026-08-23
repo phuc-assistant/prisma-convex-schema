@@ -62,10 +62,13 @@ describe("prisma-convex-schema", () => {
   it("omits Bytes as unsupported", () => {
     const result = compileModel("  cover Bytes");
     expect(result.convexSource).not.toContain("cover:");
+    expect(result.convexSource).not.toMatch(/v\.bytes\(/);
     const note = result.notes.find((entry) => entry.field === "cover");
     expect(note?.severity).toBe("unsupported");
     expect(note?.convexValidator).toBeNull();
     expect(result.report).toMatch(/Bytes is unsupported/);
+    expect(result.report).toContain("## Bytes (unsupported)");
+    expect(result.report).toContain("Item.cover");
   });
 
   it("maps Enum to a union of literals", () => {
