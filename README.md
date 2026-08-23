@@ -6,6 +6,7 @@ MIT-licensed TypeScript CLI that compiles a Prisma schema.prisma into a starting
 
 Live, no account: https://phuc-assistant.github.io/prisma-convex-schema/playground/
 (in-browser subset parser; paste schema.prisma, get schema.ts). Repo copy: [playground/index.html](playground/index.html).
+Shareable demos (no schema stuffed into the URL): [blog](https://phuc-assistant.github.io/prisma-convex-schema/playground/?demo=blog) and [decimal](https://phuc-assistant.github.io/prisma-convex-schema/playground/?demo=decimal).
 
 This is a Prisma-file compiler, not a claim to be first. Other tools (for example @doeixd/gen) can emit Convex schema from their own config. The niche here is a drop-in `.prisma` file, which those tools do not take as input.
 
@@ -13,8 +14,8 @@ This is a Prisma-file compiler, not a claim to be first. Other tools (for exampl
 
 Requires Node.js 18+. Parser: @mrleebo/prisma-ast (MIT). Runtime: tsx. Tests: vitest.
 
-Install dependencies, then run the compile script in package.json. Flags: in, out, report, optional `--decimal=number|string` (default `number` + lossy warning; `string` = lossless opt-in for issue #1).
-Example input: fixtures/blog.prisma or fixtures/decimal.prisma
+Install dependencies, then run the compile script in package.json. Flags: in, out, report, optional `--decimal=number|string` (default `number` + lossy warning; `string` = lossless opt-in for issue #1), optional `--bytes=omit|string` (default omit + **Bytes (unsupported)** report section; `string` = base64-as-string opt-in for issue #2, not Convex `v.bytes()`).
+Example input: fixtures/blog.prisma, fixtures/decimal.prisma, or fixtures/bytes.prisma
 
 Use `node --import tsx/esm src/cli.ts` (plain `npx tsx` hits a Chevrotain export issue on Node 20).
 
@@ -30,7 +31,7 @@ See src/emit.ts for the Prisma to Convex type table.
 - Boolean -> v.boolean()
 - DateTime -> ISO-8601 v.string()
 - Json -> v.any() with a warning
-- Bytes -> unsupported, omitted
+- Bytes -> omitted by default (no Convex `v.bytes()`). Dedicated **Bytes (unsupported)** report section lists each field. `--bytes=string` stores Bytes as `v.string()` (base64 text opt-in; you encode at the app layer). Issue #2.
 - Enum -> v.union of v.literal values
 - Optional / lists wrap the inner validator
 - Relations omitted, listed in the report
@@ -68,8 +69,8 @@ export default defineSchema({
 });
 ```
 
-Relations User.posts and Post.author are omitted. Post.cover (Bytes) is omitted.
-The mapping report has a dedicated **Decimal precision (explicit, lossy)** section whenever Decimal fields exist.
+Relations User.posts and Post.author are omitted. Post.cover (Bytes) is omitted and listed under **Bytes (unsupported)**.
+The mapping report has a dedicated **Decimal precision (explicit, lossy)** section whenever Decimal fields exist, and a dedicated **Bytes (unsupported)** section whenever Bytes fields exist.
 
 ## Tests
 
