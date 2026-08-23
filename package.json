@@ -1,6 +1,6 @@
 {
   "name": "prisma-convex-schema",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Compile a Prisma schema to a starting Convex schema.ts plus a mapping report.",
   "type": "module",
   "license": "MIT",

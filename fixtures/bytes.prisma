@@ -1,0 +1,18 @@
+// Synthetic Bytes fixture for prisma-convex-schema.
+// No production data. No customer rows, tokens, or warehouse codes.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Asset {
+  id    Int     @id @default(autoincrement())
+  name  String
+  blob  Bytes
+  thumb Bytes?
+}
