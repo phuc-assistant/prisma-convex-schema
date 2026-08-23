@@ -4,6 +4,7 @@ import { emitReport } from "./report.ts";
 import type { CompileOptions, CompileResult } from "./types.ts";
 
 export type {
+  BytesMode,
   CompileOptions,
   CompileResult,
   DecimalMode,
@@ -24,6 +25,9 @@ export {
   DECIMAL_COMMENT,
   DECIMAL_STRING_WARNING,
   DECIMAL_STRING_COMMENT,
+  BYTES_OMIT_MESSAGE,
+  BYTES_STRING_WARNING,
+  BYTES_STRING_COMMENT,
   isDecimalField,
 } from "./emit.ts";
 export { emitReport } from "./report.ts";

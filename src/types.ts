@@ -2,8 +2,11 @@ export type Severity = "info" | "warning" | "unsupported";
 
 export type DecimalMode = "number" | "string";
 
+export type BytesMode = "omit" | "string";
+
 export interface CompileOptions {
   decimal?: DecimalMode;
+  bytes?: BytesMode;
 }
 
 export interface MappingNote {
