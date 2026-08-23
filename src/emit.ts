@@ -1,4 +1,5 @@
 import type {
+  BytesMode,
   CompileOptions,
   DecimalMode,
   EmitResult,
@@ -20,6 +21,15 @@ export const DECIMAL_STRING_WARNING =
 
 export const DECIMAL_STRING_COMMENT =
   "Prisma Decimal -> v.string (lossless opt-in)";
+
+export const BYTES_OMIT_MESSAGE =
+  "Bytes is unsupported; field omitted. Convex has v.bytes() and file storage; this compiler emits neither by default (issue #2). Store blobs in Convex file storage.";
+
+export const BYTES_STRING_WARNING =
+  "Bytes mapped to v.string() (base64-as-string opt-in for issue #2). The compiler does not encode or decode; store base64 text at the app layer. Not Convex v.bytes(), not file storage. Default remains omit.";
+
+export const BYTES_STRING_COMMENT =
+  "Prisma Bytes -> v.string (base64 text opt-in; not v.bytes)";
 
 const SCALAR_MAP: Record<
   string,
@@ -64,8 +74,14 @@ function decimalSpec(mode: DecimalMode): {
   };
 }
 
-function resolveOptions(options?: CompileOptions): { decimal: DecimalMode } {
-  return { decimal: options?.decimal === "string" ? "string" : "number" };
+function resolveOptions(options?: CompileOptions): {
+  decimal: DecimalMode;
+  bytes: BytesMode;
+} {
+  return {
+    decimal: options?.decimal === "string" ? "string" : "number",
+    bytes: options?.bytes === "string" ? "string" : "omit",
+  };
 }
 
 export function convexTableName(modelName: string): string {
@@ -95,7 +111,7 @@ export function mapField(
   schema: ParsedSchema,
   options?: CompileOptions,
 ): { validator: string | null; note: MappingNote; comment?: string } {
-  const { decimal } = resolveOptions(options);
+  const { decimal, bytes } = resolveOptions(options);
   const prismaType =
     field.prismaType + (field.isArray ? "[]" : "") + (field.isOptional ? "?" : "");
 
@@ -115,6 +131,21 @@ export function mapField(
   }
 
   if (field.prismaType === "Bytes") {
+    if (bytes === "string") {
+      const validator = wrap("v.string()", field);
+      return {
+        validator,
+        comment: BYTES_STRING_COMMENT,
+        note: {
+          model: modelName,
+          field: field.name,
+          prismaType,
+          convexValidator: validator,
+          severity: "warning",
+          message: BYTES_STRING_WARNING,
+        },
+      };
+    }
     return {
       validator: null,
       note: {
@@ -123,8 +154,7 @@ export function mapField(
         prismaType,
         convexValidator: null,
         severity: "unsupported",
-        message:
-          "Bytes is unsupported; field omitted. Store blobs in Convex file storage instead.",
+        message: BYTES_OMIT_MESSAGE,
       },
     };
   }
