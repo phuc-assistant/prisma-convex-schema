@@ -3,6 +3,9 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, it } from "node:test";
 import {
+  BYTES_OMIT_MESSAGE,
+  BYTES_STRING_COMMENT,
+  BYTES_STRING_WARNING,
   compileSubset,
   DECIMAL_COMMENT,
   DECIMAL_STRING_COMMENT,
@@ -13,6 +16,7 @@ import {
 
 const blogPath = resolve("fixtures/blog.prisma");
 const decimalPath = resolve("fixtures/decimal.prisma");
+const bytesPath = resolve("fixtures/bytes.prisma");
 
 describe("subset parser headless check", () => {
   it("converts fixtures/blog.prisma to user and post tables", () => {
@@ -44,6 +48,9 @@ describe("subset parser headless check", () => {
     assert.match(result.report, /Prisma to Convex mapping report/);
     assert.match(result.report, /Relation omitted/);
     assert.match(result.report, /Bytes is unsupported/);
+    assert.match(result.report, /## Bytes \(unsupported\)/);
+    assert.match(result.report, /Post\.cover/);
+    assert.doesNotMatch(result.convexSource, /v\.bytes\(/);
     assert.match(result.report, /subset/);
     assert.equal(result.parser, "subset");
   });
@@ -111,5 +118,35 @@ model Post {
     assert.doesNotMatch(result.convexSource, /cover:/);
     assert.doesNotMatch(result.convexSource, /author:/);
     assert.doesNotMatch(result.convexSource, /posts:/);
+  });
+
+  it("lists Bytes fields in a dedicated unsupported section and omits them by default", () => {
+    const source = readFileSync(bytesPath, "utf8");
+    const result = compileSubset(source);
+    assert.deepEqual(
+      result.schema.models.map((model) => model.name),
+      ["Asset"],
+    );
+    assert.match(result.convexSource, /asset: defineTable\(\{/);
+    assert.match(result.convexSource, /name: v\.string\(\)/);
+    assert.doesNotMatch(result.convexSource, /blob:/);
+    assert.doesNotMatch(result.convexSource, /thumb:/);
+    assert.doesNotMatch(result.convexSource, /v\.bytes\(/);
+    assert.match(result.report, /## Bytes \(unsupported\)/);
+    assert.equal(result.report.includes(BYTES_OMIT_MESSAGE), true);
+    assert.match(result.report, /Asset\.blob/);
+    assert.match(result.report, /Asset\.thumb/);
+  });
+
+  it("maps Bytes to v.string when bytes=string without emitting v.bytes", () => {
+    const source = readFileSync(bytesPath, "utf8");
+    const result = compileSubset(source, { bytes: "string" });
+    assert.match(result.convexSource, /blob: v\.string\(\)/);
+    assert.match(result.convexSource, /thumb: v\.optional\(v\.string\(\)\)/);
+    assert.equal(result.convexSource.includes(BYTES_STRING_COMMENT), true);
+    assert.doesNotMatch(result.convexSource, /v\.bytes\(/);
+    assert.match(result.report, /## Bytes \(base64-as-string opt-in\)/);
+    assert.equal(result.report.includes(BYTES_STRING_WARNING), true);
+    assert.match(result.report, /Asset\.blob/);
   });
 });
