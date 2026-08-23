@@ -2,19 +2,21 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { compile } from "./index.ts";
-import type { DecimalMode } from "./types.ts";
+import type { BytesMode, DecimalMode } from "./types.ts";
 
 function printHelp(): void {
   const text = [
     "prisma-convex-schema - compile Prisma schema to Convex schema.ts",
     "",
     "Usage:",
-    "  node --import tsx/esm src/cli.ts --in <schema.prisma> --out <schema.ts> --report <report.md> [--decimal=number|string]",
+    "  node --import tsx/esm src/cli.ts --in <schema.prisma> --out <schema.ts> --report <report.md> [--decimal=number|string] [--bytes=omit|string]",
     "",
     "Flags:",
     "  --in, --out, --report   required paths",
     "  --decimal=number        default; Decimal -> v.number() with a lossy IEEE-754 warning",
     "  --decimal=string        lossless opt-in for issue #1; Decimal -> v.string()",
+    "  --bytes=omit            default; omit Bytes fields and list them under Bytes (unsupported)",
+    "  --bytes=string          base64-as-string opt-in for issue #2; Bytes -> v.string() (you encode)",
     "",
     "This project is built and maintained by an AI agent (Tester) on GitHub",
     "account phuc-assistant. No warranty. Do not send money to the bot.",
@@ -28,17 +30,21 @@ function parseArgs(argv: string[]): {
   outFile?: string;
   reportFile?: string;
   decimal: DecimalMode;
+  bytes: BytesMode;
   help: boolean;
   decimalError?: string;
+  bytesError?: string;
 } {
   const result: {
     inFile?: string;
     outFile?: string;
     reportFile?: string;
     decimal: DecimalMode;
+    bytes: BytesMode;
     help: boolean;
     decimalError?: string;
-  } = { help: false, decimal: "number" };
+    bytesError?: string;
+  } = { help: false, decimal: "number", bytes: "omit" };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     const next = argv[i + 1];
@@ -66,6 +72,20 @@ function parseArgs(argv: string[]): {
       } else {
         result.decimal = value;
       }
+    } else if (arg === "--bytes" && next) {
+      if (next !== "omit" && next !== "string") {
+        result.bytesError = next;
+      } else {
+        result.bytes = next;
+      }
+      i += 1;
+    } else if (arg?.startsWith("--bytes=")) {
+      const value = arg.slice("--bytes=".length);
+      if (value !== "omit" && value !== "string") {
+        result.bytesError = value;
+      } else {
+        result.bytes = value;
+      }
     }
   }
   return result;
@@ -87,6 +107,11 @@ export function run(argv: string[]): number {
     console.error(`\nerror: --decimal must be number or string, got ${args.decimalError}`);
     return 1;
   }
+  if (args.bytesError) {
+    printHelp();
+    console.error(`\nerror: --bytes must be omit or string, got ${args.bytesError}`);
+    return 1;
+  }
   if (!args.inFile || !args.outFile || !args.reportFile) {
     printHelp();
     console.error("\nerror: --in, --out, and --report are required");
@@ -94,7 +119,7 @@ export function run(argv: string[]): number {
   }
 
   const source = readFileSync(resolve(args.inFile), "utf8");
-  const result = compile(source, { decimal: args.decimal });
+  const result = compile(source, { decimal: args.decimal, bytes: args.bytes });
   writeFile(resolve(args.outFile), result.convexSource);
   writeFile(resolve(args.reportFile), result.report);
 
@@ -103,14 +128,21 @@ export function run(argv: string[]): number {
   const decimals = result.notes.filter((note) =>
     note.prismaType.replace("[]", "").replace("?", "") === "Decimal",
   ).length;
+  const bytesCount = result.notes.filter((note) =>
+    note.prismaType.replace("[]", "").replace("?", "") === "Bytes",
+  ).length;
   const decimalLabel =
     args.decimal === "string"
       ? "lossless v.string opt-in"
       : "lossy v.number";
+  const bytesLabel =
+    args.bytes === "string"
+      ? "base64 v.string opt-in"
+      : "omitted";
   console.log(`Wrote ${args.outFile}`);
   console.log(`Wrote ${args.reportFile}`);
   console.log(
-    `Models: ${result.schema.models.length}; warnings: ${warnings}; omitted fields: ${omitted}; decimal fields: ${decimals} (${decimalLabel})`,
+    `Models: ${result.schema.models.length}; warnings: ${warnings}; omitted fields: ${omitted}; decimal fields: ${decimals} (${decimalLabel}); bytes fields: ${bytesCount} (${bytesLabel})`,
   );
   return 0;
 }
