@@ -1,5 +1,8 @@
 import { compileSubset } from "../src/subset.js";
 
+const LIVE_PLAYGROUND =
+  "https://phuc-assistant.github.io/prisma-convex-schema/playground/";
+
 const BLOG_FIXTURE = `// Synthetic blog schema for prisma-convex-schema fixtures.
 // No production data. No customer rows, tokens, or warehouse codes.
 
@@ -72,20 +75,55 @@ model InvoiceLine {
 }
 `;
 
+const BYTES_FIXTURE = `// Synthetic Bytes fixture for prisma-convex-schema.
+// No production data. No customer rows, tokens, or warehouse codes.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Asset {
+  id    Int     @id @default(autoincrement())
+  name  String
+  blob  Bytes
+  thumb Bytes?
+}
+`;
+
 const inputEl = document.getElementById("input");
 const schemaEl = document.getElementById("schema");
 const reportEl = document.getElementById("report");
 const statusEl = document.getElementById("status");
 const formEl = document.getElementById("convert-form");
 
+let activeDemo = "blog";
+
 function decimalMode() {
   const checked = document.querySelector('input[name="decimal"]:checked');
   return checked && checked.value === "string" ? "string" : "number";
 }
 
+function bytesMode() {
+  const checked = document.querySelector('input[name="bytes"]:checked');
+  return checked && checked.value === "string" ? "string" : "omit";
+}
+
 function setStatus(text, kind) {
   statusEl.textContent = text;
   statusEl.dataset.kind = kind || "ok";
+}
+
+function shareUrl() {
+  const url = new URL(LIVE_PLAYGROUND);
+  if (activeDemo) url.searchParams.set("demo", activeDemo);
+  if (decimalMode() === "string") url.searchParams.set("decimal", "string");
+  if (bytesMode() === "string") url.searchParams.set("bytes", "string");
+  return url.toString();
 }
 
 function convert() {
@@ -97,14 +135,20 @@ function convert() {
     return;
   }
   try {
-    const result = compileSubset(source, { decimal: decimalMode() });
+    const result = compileSubset(source, {
+      decimal: decimalMode(),
+      bytes: bytesMode(),
+    });
     schemaEl.value = result.convexSource;
     reportEl.value = result.report;
     const models = result.schema.models.length;
     const omitted = result.notes.filter((note) => note.convexValidator === null).length;
     const warnings = result.notes.filter((note) => note.severity === "warning").length;
+    const bytes = result.notes.filter(
+      (note) => note.prismaType.replace("[]", "").replace("?", "") === "Bytes",
+    ).length;
     setStatus(
-      `Subset parser. Models: ${models}. Warnings: ${warnings}. Omitted: ${omitted}. Runs in this browser only — no account, no API.`,
+      `Subset parser. Models: ${models}. Warnings: ${warnings}. Omitted: ${omitted}. Bytes fields: ${bytes}. Runs in this browser only — no account, no API.`,
       "ok",
     );
   } catch (err) {
@@ -115,12 +159,20 @@ function convert() {
 }
 
 function loadBlog() {
+  activeDemo = "blog";
   inputEl.value = BLOG_FIXTURE;
   convert();
 }
 
 function loadDecimal() {
+  activeDemo = "decimal";
   inputEl.value = DECIMAL_FIXTURE;
+  convert();
+}
+
+function loadBytes() {
+  activeDemo = "bytes";
+  inputEl.value = BYTES_FIXTURE;
   convert();
 }
 
@@ -133,6 +185,24 @@ async function copyText(value, label) {
   }
 }
 
+function applyQuery() {
+  const params = new URLSearchParams(window.location.search);
+  const demo = (params.get("demo") || "").toLowerCase();
+  const decimal = params.get("decimal");
+  const bytes = params.get("bytes");
+  if (decimal === "string") {
+    const radio = document.querySelector('input[name="decimal"][value="string"]');
+    if (radio) radio.checked = true;
+  }
+  if (bytes === "string") {
+    const radio = document.querySelector('input[name="bytes"][value="string"]');
+    if (radio) radio.checked = true;
+  }
+  if (demo === "decimal") loadDecimal();
+  else if (demo === "bytes") loadBytes();
+  else loadBlog();
+}
+
 formEl.addEventListener("submit", (event) => {
   event.preventDefault();
   convert();
@@ -140,6 +210,10 @@ formEl.addEventListener("submit", (event) => {
 
 document.getElementById("load-blog").addEventListener("click", loadBlog);
 document.getElementById("load-decimal").addEventListener("click", loadDecimal);
+document.getElementById("load-bytes").addEventListener("click", loadBytes);
+document.getElementById("copy-link").addEventListener("click", () => {
+  copyText(shareUrl(), "live playground link");
+});
 document.getElementById("copy-schema").addEventListener("click", () => {
   copyText(schemaEl.value, "convex/schema.ts");
 });
@@ -149,6 +223,12 @@ document.getElementById("copy-report").addEventListener("click", () => {
 for (const radio of document.querySelectorAll('input[name="decimal"]')) {
   radio.addEventListener("change", convert);
 }
+for (const radio of document.querySelectorAll('input[name="bytes"]')) {
+  radio.addEventListener("change", convert);
+}
+inputEl.addEventListener("input", () => {
+  activeDemo = null;
+});
 inputEl.addEventListener("keydown", (event) => {
   if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
     event.preventDefault();
@@ -156,4 +236,4 @@ inputEl.addEventListener("keydown", (event) => {
   }
 });
 
-loadBlog();
+applyQuery();
