@@ -18,11 +18,13 @@ subset parser from src/subset.js. Be honest that it is not full Prisma.
 1. Install dependencies
 2. Run the vitest suite
 3. Run `node --test test/subset.test.js`
-4. Run the CLI on fixtures/blog.prisma and fixtures/decimal.prisma
+4. Run the CLI on fixtures/blog.prisma, fixtures/decimal.prisma, and fixtures/bytes.prisma
 
 Keep the type mapping table in the README in sync with src/emit.ts.
 Decimal default stays `v.number()` with an explicit lossy warning.
 `--decimal=string` is the lossless opt-in (issue #1).
+Bytes default stays omitted (no Convex `v.bytes()`). List each field under **Bytes (unsupported)**.
+`--bytes=string` is the base64-as-string opt-in (issue #2); do not emit a fake Bytes validator.
 
 ## Money
 

@@ -4,7 +4,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Prisma → Convex playground (subset)</title>
-  <meta name="description" content="In-browser Prisma schema to Convex schema.ts compiler. No account. Subset parser.">
+  <meta name="description" content="Paste schema.prisma, get a starting Convex schema.ts. No account. Conservative subset parser. Polar checkout is not live.">
+  <link rel="canonical" href="https://phuc-assistant.github.io/prisma-convex-schema/playground/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Prisma → Convex playground (subset)">
+  <meta property="og:description" content="Paste schema.prisma, get a starting Convex schema.ts. No account. Subset parser, not full Prisma. Polar checkout is not live.">
+  <meta property="og:url" content="https://phuc-assistant.github.io/prisma-convex-schema/playground/">
+  <meta property="og:site_name" content="prisma-convex-schema">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Prisma → Convex playground (subset)">
+  <meta name="twitter:description" content="Paste schema.prisma, get a starting Convex schema.ts. No account. Subset parser. Polar checkout is not live.">
   <style>
     :root {
       color-scheme: dark;
@@ -27,9 +36,7 @@
       line-height: 1.45;
     }
     header, main, footer { max-width: 1200px; margin: 0 auto; padding: 1rem 1.25rem; }
-    header {
-      border-bottom: 1px solid var(--line);
-    }
+    header { border-bottom: 1px solid var(--line); }
     .disclosure {
       background: var(--panel);
       border: 1px solid var(--line);
@@ -103,7 +110,7 @@
     </div>
     <h1>Prisma → Convex playground</h1>
     <p class="lede">Paste <code>schema.prisma</code>. Get a starting <code>convex/schema.ts</code> plus a mapping report. Nothing leaves this browser.</p>
-    <p class="subset">Honest subset: this page uses a conservative plain-JS parser, not <code>@mrleebo/prisma-ast</code> / Chevrotain. It handles models, enums, String/Int/Float/Decimal/Boolean/DateTime/Json/Bytes, optional, and lists. Relations are skipped. generator/datasource/@@indexes/views/composite types are ignored. Enough for the blog and decimal fixtures; not full Prisma.</p>
+    <p class="subset">Honest subset: this page uses a conservative plain-JS parser, not <code>@mrleebo/prisma-ast</code> / Chevrotain. It handles models, enums, String/Int/Float/Decimal/Boolean/DateTime/Json/Bytes, optional, and lists. Relations are skipped. generator/datasource/@@indexes/views/composite types are ignored. Enough for the blog, decimal, and bytes fixtures; not full Prisma. Shareable demos: <a href="?demo=blog">?demo=blog</a> and <a href="?demo=decimal">?demo=decimal</a>. Custom schemas are not stuffed into the URL.</p>
   </header>
   <main>
     <form id="convert-form">
@@ -111,9 +118,15 @@
         <button type="submit">Convert</button>
         <button type="button" id="load-blog">Load blog fixture</button>
         <button type="button" id="load-decimal">Load decimal fixture</button>
+        <button type="button" id="load-bytes">Load bytes fixture</button>
+        <button type="button" id="copy-link">Copy live link</button>
         <span class="radio">Decimal:
           <label><input type="radio" name="decimal" value="number" checked> number (lossy, default)</label>
           <label><input type="radio" name="decimal" value="string"> string (lossless opt-in)</label>
+        </span>
+        <span class="radio">Bytes:
+          <label><input type="radio" name="bytes" value="omit" checked> omit (default)</label>
+          <label><input type="radio" name="bytes" value="string"> string (base64 opt-in)</label>
         </span>
       </div>
       <p class="status" id="status" data-kind="ok">Ready.</p>
@@ -140,7 +153,7 @@
     </form>
   </main>
   <footer>
-    <p>MIT. CLI lives in the same repo. Default Decimal mapping is still lossy <code>v.number()</code> (issue #1). Pro is not for sale. Do not send money.</p>
+    <p>MIT. CLI lives in the same repo. Default Decimal mapping is still lossy <code>v.number()</code> (issue #1). Bytes are omitted by default and listed under <strong>Bytes (unsupported)</strong> — no fake <code>v.bytes()</code> (issue #2). Pro is not for sale. Do not send money.</p>
   </footer>
   <script type="module" src="./app.js"></script>
 </body>
